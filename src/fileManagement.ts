@@ -1,6 +1,6 @@
 
 export const getFileFolder = (filetype: string, lang?: string) => {
-  const langBit = lang ? `${lang}/` : '';
+  const langBit = (!!lang) ? `${lang}/` : '';
   const contentFolder = filetype.toLowerCase();
   return `./src/content/${contentFolder}/${langBit}`;
 };
@@ -13,7 +13,7 @@ export const getImageFolder = (filetype: string) => {
 
 export const getFilePath = (slug: string, filetype: string, lang?: string) => {
   const fileFolder = getFileFolder(filetype, lang);
-  return `${fileFolder}/${slug}.md`;
+  return `${fileFolder}${slug}.md`;
 };
 
 export const getImageFolderPath = (slug: string, filetype: string) => {
