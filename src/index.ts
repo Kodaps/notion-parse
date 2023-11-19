@@ -179,7 +179,7 @@ export const parseNotionPage = async (page:PageObjectResponse| PartialPageObject
 
 const checkFolder = (dir: string) => {
   if (!fs.existsSync(dir)){
-    fs.mkdirSync(dir);
+    fs.mkdirSync(dir, { recursive: true });
 }
 }
 
