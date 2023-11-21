@@ -74,6 +74,8 @@ const manageImage = async (properties:{[key: string]: any}, url: string, content
     throw new Error('No slug');
   }
 
+  checkFolder("./public" + getImageFolder(contentType));
+
   const destination: string = getImageFolder(contentType) + name;
 
   return await downloadImage(url, destination);
@@ -167,10 +169,6 @@ export const parseNotionPage = async (page:PageObjectResponse| PartialPageObject
   if ('properties' in page) {
     for (let field in (page.properties || {})) {
 
-      if (debug) {
-        console.log(`Fetching ${field}`);
-      }
-
       const value = await getFieldInfo(page.properties, field, contentType);
       if (value !== null && value !== undefined && !obj[field]) {
         obj[field] = value;
@@ -239,6 +237,8 @@ const saveFile = async (frontMatter: {[key: string]: any}, type: string, languag
 
   let imagePath =  getImageFolderPath(slug, type);
 
+  console.log('checking imagePath ./public' + imagePath)
+
   checkFolder('./public' + imagePath);
 
   for (let block of imageBlocks) {
@@ -290,19 +290,14 @@ const saveFile = async (frontMatter: {[key: string]: any}, type: string, languag
 
 export const parseNotion = async (token: string, contentRoot: string, contentTypes: Array<DocumentType>, debug = false) => {
 
-  if (debug) {
-    console.log('Setting up Notion client');
-  }
+  console.log('Fetching data from Notion');
+
   setNotionSecret(token);
 
   addDocumentTypes(contentTypes);
 
   if (!notionClient) {
     throw new Error('Notion client incorretly setup');
-  } else {
-    if (debug) {
-      console.log('Notion client setup');
-    }
   }
 
 
