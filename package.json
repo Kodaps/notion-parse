@@ -1,6 +1,6 @@
 {
   "name": "@kodaps/notion-parse",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "Convert Notion pages to Markdown with frontmatter",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
