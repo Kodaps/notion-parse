@@ -168,7 +168,7 @@ export const parseNotionPage = async (page:PageObjectResponse| PartialPageObject
     for (let field in (page.properties || {})) {
 
       if (debug) {
-        console.debug(`Fetching ${field}`);
+        console.log(`Fetching ${field}`);
       }
 
       const value = await getFieldInfo(page.properties, field, contentType);
@@ -290,6 +290,9 @@ const saveFile = async (frontMatter: {[key: string]: any}, type: string, languag
 
 export const parseNotion = async (token: string, contentRoot: string, contentTypes: Array<DocumentType>, debug = false) => {
 
+  if (debug) {
+    console.log('Setting up Notion client');
+  }
   setNotionSecret(token);
 
   addDocumentTypes(contentTypes);
@@ -298,7 +301,7 @@ export const parseNotion = async (token: string, contentRoot: string, contentTyp
     throw new Error('Notion client incorretly setup');
   } else {
     if (debug) {
-      console.debug('Notion client setup');
+      console.log('Notion client setup');
     }
   }
 
