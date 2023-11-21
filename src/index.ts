@@ -158,7 +158,7 @@ function wget(url: string, dest: string): Promise<void> {
 }
 
 
-export const parseNotionPage = async (page:PageObjectResponse| PartialPageObjectResponse | PartialDatabaseObjectResponse | DatabaseObjectResponse, contentType: string ) => {
+export const parseNotionPage = async (page:PageObjectResponse| PartialPageObjectResponse | PartialDatabaseObjectResponse | DatabaseObjectResponse, contentType: string, debug = false ) => {
   const obj:{[key:string]: any} = {
     notionId: page.id,
     type: contentType,
@@ -166,6 +166,10 @@ export const parseNotionPage = async (page:PageObjectResponse| PartialPageObject
 
   if ('properties' in page) {
     for (let field in (page.properties || {})) {
+
+      if (debug) {
+        console.debug(`Fetching ${field}`);
+      }
 
       const value = await getFieldInfo(page.properties, field, contentType);
       if (value !== null && value !== undefined && !obj[field]) {
@@ -183,7 +187,7 @@ const checkFolder = (dir: string) => {
 }
 }
 
-const getDatabase = async (notion: Client, database_id: string, contentType: string) => {
+const getDatabase = async (notion: Client, database_id: string, contentType: string, debug = false) => {
   const request = await notion.databases.query({
     database_id,
   });
@@ -192,8 +196,12 @@ const getDatabase = async (notion: Client, database_id: string, contentType: str
 
   let ret = [];
 
+  if (debug) {
+    console.log(`Got ${results.length} results from ${contentType} database`);
+  }
+
   for (let page of results) {
-    let item = await parseNotionPage(page, contentType);
+    let item = await parseNotionPage(page, contentType, debug);
     ret.push(item);
   }
 
@@ -280,7 +288,7 @@ const saveFile = async (frontMatter: {[key: string]: any}, type: string, languag
 
 
 
-export const parseNotion = async (token: string, contentRoot: string, contentTypes: Array<DocumentType>) => {
+export const parseNotion = async (token: string, contentRoot: string, contentTypes: Array<DocumentType>, debug = false) => {
 
   setNotionSecret(token);
 
@@ -288,6 +296,10 @@ export const parseNotion = async (token: string, contentRoot: string, contentTyp
 
   if (!notionClient) {
     throw new Error('Notion client incorretly setup');
+  } else {
+    if (debug) {
+      console.debug('Notion client setup');
+    }
   }
 
 
@@ -305,7 +317,11 @@ export const parseNotion = async (token: string, contentRoot: string, contentTyp
       throw new Error('contentType id missing');
     }
 
-    const database = await getDatabase(notionClient, databaseId, contentType);
+    const database = await getDatabase(notionClient, databaseId, contentType, debug);
+
+    if (!database.length) {
+      console.error(`Got ${database.length} items from ${contentType} database`);
+    }
 
     for (let page of database) {
       sleep(400);
