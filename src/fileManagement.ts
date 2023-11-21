@@ -1,8 +1,18 @@
 
+let rootFolder: string|null = null;
+
+export const setRootFolder = (folder: string) => {
+  rootFolder = folder;
+  if (rootFolder?.endsWith('/')) {
+    rootFolder = rootFolder.slice(0, -1);
+  }
+};
+
+
 export const getFileFolder = (filetype: string, lang?: string) => {
   const langBit = (!!lang) ? `${lang}/` : '';
   const contentFolder = filetype.toLowerCase();
-  return `./src/content/${contentFolder}/${langBit}`;
+  return `${rootFolder}/${contentFolder}/${langBit}`;
 };
 
 export const getImageFolder = (filetype: string) => {

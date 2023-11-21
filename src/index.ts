@@ -1,7 +1,7 @@
 import { Client } from "@notionhq/client";
 import { DatabaseObjectResponse, PageObjectResponse, PartialDatabaseObjectResponse, PartialPageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { NotionToMarkdown } from "notion-to-md";
-import { getFileFolder, getFilePath, getImageFolder, getImageFolderPath } from "./fileManagement";
+import { getFileFolder, getFilePath, getImageFolder, getImageFolderPath, setRootFolder } from "./fileManagement";
 
 const yaml = require('yaml');
 const fs = require('fs');
@@ -23,6 +23,8 @@ const setNotionSecret = (auth: string) => {
   n2m = new NotionToMarkdown({ notionClient });
 
 }
+
+
 
 const documentTypes = [];
 
@@ -215,12 +217,15 @@ const saveFile = async (frontMatter: {[key: string]: any}, type: string, languag
   const notionId = frontMatter['notionId'];
   const lang = languageField ? frontMatter[languageField] : '';
 
+  if (lang) {
+    checkFolder(getFileFolder(type, lang));
+  }
+
   const title = frontMatter['title'];
 
   if (!title && !frontMatter['slug']) {
     throw new Error(`No title or slug in front matter for ${notionId} of type ${type}`);
   }
-
 
   const slug = frontMatter['slug'] || slugify(title, {
     lower: true,
@@ -294,6 +299,8 @@ export const parseNotion = async (token: string, contentRoot: string, contentTyp
 
   setNotionSecret(token);
 
+  setRootFolder(contentRoot);
+
   addDocumentTypes(contentTypes);
 
   if (!notionClient) {
@@ -315,15 +322,17 @@ export const parseNotion = async (token: string, contentRoot: string, contentTyp
       throw new Error('contentType id missing');
     }
 
+    console.log(`Fetching ${contentType} data`);
+
+
     const database = await getDatabase(notionClient, databaseId, contentType, debug);
 
     if (!database.length) {
       console.error(`Got ${database.length} items from ${contentType} database`);
     }
 
-    ;
-
-    checkFolder(contentRoot + '/' + contentType.toLowerCase);
+    console.log("checking "+ contentRoot + '/' + contentType.toLowerCase());
+    checkFolder(contentRoot + '/' + contentType.toLowerCase());
 
     for (let page of database) {
       sleep(400);
