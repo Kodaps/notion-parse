@@ -2,7 +2,3 @@
 node_modules
 
 
-# ignore the lib directory and its contents
-lib/
-
-
