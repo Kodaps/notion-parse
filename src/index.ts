@@ -1,7 +1,7 @@
 import { Client } from "@notionhq/client";
 import { DatabaseObjectResponse, PageObjectResponse, PartialDatabaseObjectResponse, PartialPageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { NotionToMarkdown } from "notion-to-md";
-import { getFilePath, getImageFolder, getImageFolderPath } from "./fileManagement";
+import { getFileFolder, getFilePath, getImageFolder, getImageFolderPath } from "./fileManagement";
 
 const yaml = require('yaml');
 const fs = require('fs');
@@ -325,6 +325,10 @@ export const parseNotion = async (token: string, contentRoot: string, contentTyp
     if (!database.length) {
       console.error(`Got ${database.length} items from ${contentType} database`);
     }
+
+    ;
+
+    checkFolder(contentRoot + '/' + contentType.toLowerCase);
 
     for (let page of database) {
       sleep(400);
