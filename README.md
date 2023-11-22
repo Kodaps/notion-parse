@@ -9,6 +9,18 @@ I also use ContentLayer to make sure my fontmatter has the right fields.
 
 Here is how I use the module in my NextJS project.
 
+I have a .env file with the following variables :
+
+```.env
+NOTION_SECRET=secret_blablablablabla
+
+NOTION_PORTFOLIO_DATABASE_ID=18abababababababababba
+NOTION_NEWSLETTER_DATABASE_ID=19abababababababababba
+NOTION_POST_DATABASE_ID=20abababababababababba
+````
+
+I then have this script that I run to download the content from Notion and save it as Markdown :
+
 ```js
 
 // @ts-check
@@ -20,21 +32,11 @@ dotenv.config();
 
 const go = async () => {
 
-  if (process.env.NOTION_TOKEN) {
-    await NotionParse.parseNotion(process.env.NOTION_TOKEN, './src/content', [
+  if (process.env.NOTION_SECRET) {
+    await NotionParse.parseNotion(process.env.NOTION_SECRET, './src/content', [
       {
         databaseId: process.env.NOTION_PORTFOLIO_DATABASE_ID || '',
         contentType: 'Portfolio'
-      },
-      {
-        databaseId: process.env.NOTION_NEWSLETTER_DATABASE_ID || '',
-        contentType: 'Newsletter',
-        languageField: 'lang'
-      },
-      {
-        databaseId: process.env.NOTION_PAGE_DATABASE_ID || '',
-        contentType: 'Page',
-        languageField: 'lang'
       },
       {
         databaseId: process.env.NOTION_POST_DATABASE_ID || '',
