@@ -117,6 +117,8 @@ const getFieldInfo = async (properties:{[key: string]: any}, name: string, conte
       return element.email;
     case 'status':
       return element.status;
+    case 'formula':
+      return element.formula.number;
     case 'phone_number':
       return element.phone_number;
     case 'relation':
