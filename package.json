@@ -5,7 +5,7 @@
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "scripts": {
-    "test": "test",
+    "test": "node tests/test.js",
     "build": "tsc",
     "release": "release-it"
   },
