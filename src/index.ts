@@ -1,19 +1,30 @@
 import { Client } from "@notionhq/client";
-import { DatabaseObjectResponse, PageObjectResponse, PartialDatabaseObjectResponse, PartialPageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+import {
+  DatabaseObjectResponse,
+  PageObjectResponse,
+  PartialDatabaseObjectResponse,
+  PartialPageObjectResponse,
+} from "@notionhq/client/build/src/api-endpoints";
 import { NotionToMarkdown } from "notion-to-md";
-import { getFileFolder, getFilePath, getImageFolder, getImageFolderPath, setRootFolder } from "./fileManagement";
+import {
+  getFileFolder,
+  getFilePath,
+  getImageFolder,
+  getImageFolderPath,
+  setRootFolder,
+} from "./fileManagement";
 
-const yaml = require('yaml');
-const fs = require('fs');
-const http = require('https');
-const slugify = require('slugify');
-const Jimp = require('jimp');
+const yaml = require("yaml");
+const fs = require("fs");
+const http = require("https");
+const slugify = require("slugify");
+const Jimp = require("jimp");
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-let notionClient: Client|null = null;
+let notionClient: Client | null = null;
 
-let n2m: NotionToMarkdown|null = null;
+let n2m: NotionToMarkdown | null = null;
 
 const setNotionSecret = (auth: string) => {
   notionClient = new Client({
@@ -21,10 +32,7 @@ const setNotionSecret = (auth: string) => {
   });
 
   n2m = new NotionToMarkdown({ notionClient });
-
-}
-
-
+};
 
 const documentTypes = [];
 
@@ -37,14 +45,12 @@ interface DocumentType {
 
 const addDocumentTypes = (types: Array<DocumentType>) => {
   documentTypes.push(...types);
-}
-
+};
 
 const downloadImage = async (fileUrl: string, destination: string) => {
-
   const src = destination; // `/images/${folder}/${name}`;
 
-  const file = './public' + src;
+  const file = "./public" + src;
 
   if (!fs.existsSync(file)) {
     await wget(fileUrl, file); //element.properties.image.files[0].file.url, file);
@@ -62,18 +68,23 @@ const downloadImage = async (fileUrl: string, destination: string) => {
   };
 };
 
+const manageImage = async (
+  properties: { [key: string]: any },
+  url: string,
+  contentType: string,
+  name?: string
+) => {
+  const title = await getFieldInfo(properties, "title", contentType);
 
-const manageImage = async (properties:{[key: string]: any}, url: string, contentType: string, name?: string) => {
-
-  const title = await getFieldInfo(properties, 'title', contentType);
-
-  const slug = await getFieldInfo(properties, 'slug', contentType) || slugify(title, {
-    lower: true,
-    strict: true,
-  });
+  const slug =
+    (await getFieldInfo(properties, "slug", contentType)) ||
+    slugify(title, {
+      lower: true,
+      strict: true,
+    });
 
   if (!slug) {
-    throw new Error('No slug');
+    throw new Error("No slug");
   }
 
   checkFolder("./public" + getImageFolder(contentType));
@@ -81,11 +92,13 @@ const manageImage = async (properties:{[key: string]: any}, url: string, content
   const destination: string = getImageFolder(contentType) + name;
 
   return await downloadImage(url, destination);
+};
 
-}
-
-
-const getFieldInfo = async (properties:{[key: string]: any}, name: string, contentType: string) => {
+const getFieldInfo = async (
+  properties: { [key: string]: any },
+  name: string,
+  contentType: string
+) => {
   const element = properties[name];
 
   if (!element) {
@@ -95,84 +108,99 @@ const getFieldInfo = async (properties:{[key: string]: any}, name: string, conte
   const type = element.type;
 
   switch (type) {
-    case 'title':
+    case "title":
       return element.title[0]?.plain_text;
-    case 'rich_text':
+    case "rich_text":
       return element.rich_text[0]?.plain_text;
-    case 'date':
+    case "date":
       return element.date?.start;
-    case 'url':
+    case "url":
       return element.url;
-    case 'checkbox':
+    case "checkbox":
       return element.checkbox;
-    case 'number':
+    case "number":
       return element.number;
-    case 'select':
+    case "select":
       return element.select?.name;
-    case 'created_time':
+    case "created_time":
       return element.created_time;
-    case 'last_edited_time':
+    case "last_edited_time":
       return element.last_edited_time;
-    case 'email':
+    case "email":
       return element.email;
-    case 'status':
+    case "status":
       return element.status;
-    case 'formula':
+    case "formula":
       return element.formula.number;
-    case 'phone_number':
+    case "phone_number":
       return element.phone_number;
-    case 'relation':
-      return element.relation.map((item: { id: any; }) => item.id);
-    case 'multi_select':
-      return element.multi_select.map((item: { name: any; }) => item.name);
-    case 'files':
-
+    case "relation":
+      return element.relation.map((item: { id: any }) => item.id);
+    case "multi_select":
+      return element.multi_select.map((item: { name: any }) => item.name);
+    case "files":
       let url = element.files[0]?.url || element.files[0]?.file?.url;
       if (!url) {
         return null;
       }
-      return await manageImage(properties, url, contentType, element.files[0]?.name);
+      return await manageImage(
+        properties,
+        url,
+        contentType,
+        element.files[0]?.name
+      );
     default:
       throw new Error(`Unknown type ${type}`);
   }
 };
 
-
-
-const toFrontMatter = (data: Object) => '---\n' + yaml.stringify(data) + '\n---\n';
-
+const toFrontMatter = (data: Object) =>
+  "---\n" + yaml.stringify(data) + "\n---\n";
 
 function wget(url: string, dest: string): Promise<void> {
   return new Promise((res) => {
-    http.get(url, (response: { statusCode: number; headers: { location: string; }; pipe: (arg0: any) => void; }) => {
-      if (response.statusCode == 302) {
-        // if the response is a redirection, we call again the method with the new location
-        console.log('redirecting to ', response.headers.location);
-        wget(String(response.headers.location), dest);
-      } else {
-        console.log('Downloading', url, 'to', dest);
-        const file = fs.createWriteStream(dest);
+    http.get(
+      url,
+      (response: {
+        statusCode: number;
+        headers: { location: string };
+        pipe: (arg0: any) => void;
+      }) => {
+        if (response.statusCode == 302) {
+          // if the response is a redirection, we call again the method with the new location
+          console.log("redirecting to ", response.headers.location);
+          wget(String(response.headers.location), dest);
+        } else {
+          console.log("Downloading", url, "to", dest);
+          const file = fs.createWriteStream(dest);
 
-        response.pipe(file);
-        file.on('finish', function () {
-          file.close();
-          res();
-        });
+          response.pipe(file);
+          file.on("finish", function () {
+            file.close();
+            res();
+          });
+        }
       }
-    });
+    );
   });
 }
 
-
-export const parseNotionPage = async (page:PageObjectResponse| PartialPageObjectResponse | PartialDatabaseObjectResponse | DatabaseObjectResponse, contentType: string, debug = false ) => {
-  const obj:{[key:string]: any} = {
+export const parseNotionPage = async (
+  page:
+    | PageObjectResponse
+    | PartialPageObjectResponse
+    | PartialDatabaseObjectResponse
+    | DatabaseObjectResponse,
+  contentType: string,
+  debug = false
+) => {
+  const obj: { [key: string]: any } = {
     notionId: page.id,
     type: contentType,
   };
 
-  if ('properties' in page) {
-    for (let field in (page.properties || {})) {
-
+  if ("properties" in page) {
+    for (let field in page.properties || {}) {
       const value = await getFieldInfo(page.properties, field, contentType);
       if (value !== null && value !== undefined && !obj[field]) {
         obj[field] = value;
@@ -184,12 +212,17 @@ export const parseNotionPage = async (page:PageObjectResponse| PartialPageObject
 };
 
 const checkFolder = (dir: string) => {
-  if (!fs.existsSync(dir)){
+  if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
-}
-}
+  }
+};
 
-const getDatabase = async (notion: Client, database_id: string, contentType: string, debug = false) => {
+const getDatabase = async (
+  notion: Client,
+  database_id: string,
+  contentType: string,
+  debug = false
+) => {
   const request = await notion.databases.query({
     database_id,
   });
@@ -210,57 +243,79 @@ const getDatabase = async (notion: Client, database_id: string, contentType: str
   return ret;
 };
 
-const saveFile = async (frontMatter: {[key: string]: any}, type: string, languageField?: string) => {
-
+const saveFile = async (
+  frontMatter: { [key: string]: any },
+  type: string,
+  languageField?: string
+) => {
   if (!n2m) {
-    throw new Error('Notion client not set');
+    throw new Error("Notion client not set");
   }
 
-  const notionId = frontMatter['notionId'];
-  const lang = languageField ? frontMatter[languageField] : '';
+  const notionId = frontMatter["notionId"];
+  const lang = languageField ? frontMatter[languageField] : "";
 
   if (lang) {
     checkFolder(getFileFolder(type, lang));
   }
 
-  const title = frontMatter['title'];
+  const title = frontMatter["title"];
 
-  if (!title && !frontMatter['slug']) {
-    throw new Error(`No title or slug in front matter for ${notionId} of type ${type}`);
+  if (!title && !frontMatter["slug"]) {
+    throw new Error(
+      `No title or slug in front matter for ${notionId} of type ${type}`
+    );
   }
 
-  const slug = frontMatter['slug'] || slugify(title, {
-    lower: true,
-    strict: true,
-  });
+  const slug =
+    frontMatter["slug"] ||
+    slugify(title, {
+      lower: true,
+      strict: true,
+    });
 
-  frontMatter['slug'] = slug;
+  frontMatter["slug"] = slug;
 
   const mdblocks = await n2m.pageToMarkdown(notionId);
 
-  const imageBlocks = mdblocks.filter((block) => block.type === 'image').map((block) => block.parent);
+  const imageBlocks = mdblocks
+    .filter((block) => block.type === "image")
+    .map((block) => block.parent);
 
   let images = [];
 
-  let imagePath =  getImageFolderPath(slug, type);
+  let imagePath = getImageFolderPath(slug, type);
 
-  console.log('checking imagePath ./public' + imagePath)
+  console.log("checking imagePath ./public" + imagePath);
 
-  checkFolder('./public' + imagePath);
+  checkFolder("./public" + imagePath);
 
   for (let block of imageBlocks) {
-
-    let data = block.replace('![', '').replace(']', '').replace(')', '').split('(');
+    let data = block
+      .replace("![", "")
+      .replace("]", "")
+      .replace(")", "")
+      .split("(");
 
     if (data.length !== 2) {
-      console.log('Error with image block: ', block);
+      console.log("Error with image block: ", block);
       continue;
     }
 
     const url = data[1];
-    const name = data[0];
+    // This way we're going to get a uuid as the file name.
+    // The reason being that, we don't want to overwrite files with the same name.
+    // especially if you are using the copy-paste method to add new images
+    // to the notion page because this will name all the images the same
+    // Untitled.{extension}.
+    // Url format that comes from notion:
+    // https://prod-files-secure.s3.us-west-2.amazonaws.com/{uuid}/{uuid}/{file_name}.{extension}
+    const urlPathname = new URL(url).pathname;
+    const newName = urlPathname.split("/");
+    const extension = data[0].substring(data[0].lastIndexOf("."));
+    const name = `${newName[newName.length - 2]}${extension}` ?? data[0];
 
-    const filename = name.split('/').pop();
+    const filename = name.split("/").pop();
 
     const src = imagePath + filename;
 
@@ -272,7 +327,7 @@ const saveFile = async (frontMatter: {[key: string]: any}, type: string, languag
     images.push({
       src,
       url,
-      name
+      name,
     });
   }
 
@@ -282,22 +337,23 @@ const saveFile = async (frontMatter: {[key: string]: any}, type: string, languag
     mdBody.parent = mdBody.parent.replace(image.url, image.src);
   }
 
-
   const newFile = getFilePath(slug, type, lang);
 
   try {
     fs.writeFileSync(newFile, toFrontMatter(frontMatter) + mdBody.parent);
   } catch (e) {
-    console.log('error with file: ', newFile);
+    console.log("error with file: ", newFile);
     console.error(e);
   }
 };
 
-
-
-export const parseNotion = async (token: string, contentRoot: string, contentTypes: Array<DocumentType>, debug = false) => {
-
-  console.log('Fetching data from Notion');
+export const parseNotion = async (
+  token: string,
+  contentRoot: string,
+  contentTypes: Array<DocumentType>,
+  debug = false
+) => {
+  console.log("Fetching data from Notion");
 
   setNotionSecret(token);
 
@@ -306,53 +362,50 @@ export const parseNotion = async (token: string, contentRoot: string, contentTyp
   addDocumentTypes(contentTypes);
 
   if (!notionClient) {
-    throw new Error('Notion client incorretly setup');
+    throw new Error("Notion client incorretly setup");
   }
 
-
   for (let type of contentTypes) {
-
     const databaseId = type.databaseId;
     const lang = type.languageField;
     const contentType = type.contentType || databaseId;
 
     if (!databaseId) {
-      throw new Error('No database id for type ' + type.contentType);
+      throw new Error("No database id for type " + type.contentType);
     }
 
     if (!contentType) {
-      throw new Error('contentType id missing');
+      throw new Error("contentType id missing");
     }
 
     console.log(`Fetching ${contentType} data`);
 
-
-    const database = await getDatabase(notionClient, databaseId, contentType, debug);
+    const database = await getDatabase(
+      notionClient,
+      databaseId,
+      contentType,
+      debug
+    );
 
     if (!database.length) {
-      console.error(`Got ${database.length} items from ${contentType} database`);
+      console.error(
+        `Got ${database.length} items from ${contentType} database`
+      );
     }
 
-    console.log("checking "+ contentRoot + '/' + contentType.toLowerCase());
-    checkFolder(contentRoot + '/' + contentType.toLowerCase());
+    console.log("checking " + contentRoot + "/" + contentType.toLowerCase());
+    checkFolder(contentRoot + "/" + contentType.toLowerCase());
 
     for (let page of database) {
       sleep(400);
 
-      for(let field of (type.filterFields || [])) {
+      for (let field of type.filterFields || []) {
         if (page[field]) {
           delete page[field];
         }
       }
 
       await saveFile(page, contentType, lang);
-
     }
   }
-}
-
-
-
-
-
-
+};
