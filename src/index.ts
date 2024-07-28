@@ -190,21 +190,32 @@ const checkFolder = (dir: string) => {
 }
 
 const getDatabase = async (notion: Client, database_id: string, contentType: string, debug = false) => {
-  const request = await notion.databases.query({
-    database_id,
-  });
 
-  const results = request.results;
-
+  let hasMore = true;
   let ret = [];
 
-  if (debug) {
-    console.log(`Got ${results.length} results from ${contentType} database`);
-  }
+  let next_cursor:string|null = 'undefined';
 
-  for (let page of results) {
-    let item = await parseNotionPage(page, contentType, debug);
-    ret.push(item);
+  while(hasMore) {
+
+    const request = await notion.databases.query({
+      database_id,
+      start_cursor: next_cursor || 'undefined',
+    });
+
+    const results = request.results;
+
+    next_cursor = request.next_cursor;
+    hasMore = request.has_more;
+
+    if (debug) {
+      console.log(`Got ${results.length} results from ${contentType} database`);
+    }
+
+    for (let page of results) {
+      let item = await parseNotionPage(page, contentType, debug);
+      ret.push(item);
+    }
   }
 
   return ret;
