@@ -194,7 +194,7 @@ const getDatabase = async (notion: Client, database_id: string, contentType: str
   let hasMore = true;
   let ret = [];
 
-  let next_cursor:string|null = 'undefined';
+  let next_cursor:string|undefined = undefined;
 
   while(hasMore) {
 
@@ -205,7 +205,7 @@ const getDatabase = async (notion: Client, database_id: string, contentType: str
 
     const results = request.results;
 
-    next_cursor = request.next_cursor;
+    next_cursor = request.next_cursor ?? undefined;
     hasMore = request.has_more;
 
     if (debug) {
